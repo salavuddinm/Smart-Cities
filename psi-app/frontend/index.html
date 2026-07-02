@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kenetix360 · Public Safety Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b1014;
+    --panel: #11181f;
+    --panel-2: #161f27;
+    --line: #223039;
+    --text: #dfe8ee;
+    --muted: #7c919e;
+    --accent: #ffb648;      /* signal amber - the one warm accent in a cold-toned command room */
+    --accent-dim: #5a4322;
+    --ok: #36c694;
+    --crit: #ff5d5d;
+    --high: #ff9a4d;
+    --med: #ffd24d;
+    --low: #4fb8ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .display{font-family:'Space Grotesk',sans-serif}
+
+  .shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  .nav{background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:4px}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 22px}
+  .brand-mark{width:10px;height:10px;border-radius:2px;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+  .brand-text{font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:.2px}
+  .brand-sub{font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
+
+  .navitem{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;color:var(--muted);cursor:pointer;font-size:13.5px;border:1px solid transparent}
+  .navitem:hover{color:var(--text);background:var(--panel-2)}
+  .navitem.active{color:var(--text);background:var(--panel-2);border-color:var(--line)}
+  .navitem .dot{width:6px;height:6px;border-radius:50%;background:var(--line)}
+  .navitem.active .dot{background:var(--accent)}
+
+  .main{padding:22px 28px 60px;max-width:1240px}
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+  .topbar h1{font-family:'Space Grotesk';font-size:21px;margin:0;font-weight:600}
+  .topbar .meta{color:var(--muted);font-size:12px}
+  .userbox{font-size:12px;color:var(--muted)}
+  .userbox b{color:var(--text)}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+  .kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .kpi .value{font-family:'Space Grotesk';font-size:30px;font-weight:700;margin-top:6px}
+  .kpi.warn .value{color:var(--accent)}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:18px}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .panel-head h2{font-family:'Space Grotesk';font-size:14px;margin:0;font-weight:600}
+  .panel-body{padding:6px 0}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 16px}
+  td{padding:9px 16px;border-top:1px solid var(--line)}
+  tr.row:hover{background:var(--panel-2)}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+  .badge .dot{width:6px;height:6px;border-radius:50%}
+  .sev-Critical{background:rgba(255,93,93,.12);color:var(--crit)}
+  .sev-Critical .dot{background:var(--crit)}
+  .sev-Emergency{background:rgba(255,93,93,.18);color:var(--crit)}
+  .sev-Emergency .dot{background:var(--crit)}
+  .sev-High{background:rgba(255,154,77,.12);color:var(--high)}
+  .sev-High .dot{background:var(--high)}
+  .sev-Medium{background:rgba(255,210,77,.12);color:var(--med)}
+  .sev-Medium .dot{background:var(--med)}
+  .sev-Low{background:rgba(79,184,255,.12);color:var(--low)}
+  .sev-Low .dot{background:var(--low)}
+
+  .pill{font-size:11px;padding:3px 9px;border-radius:6px;background:var(--panel-2);color:var(--muted);border:1px solid var(--line)}
+
+  .btn{font-family:'Inter';font-size:12px;font-weight:600;padding:6px 11px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#1a1304;border-color:var(--accent)}
+  .btn.primary:hover{filter:brightness(1.08);color:#1a1304}
+  .btn.tiny{padding:4px 8px;font-size:11px}
+  .btnrow{display:flex;gap:6px;flex-wrap:wrap}
+
+  .toolbar{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  select,input{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12px;font-family:'Inter'}
+
+  .grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+  .map{height:360px;border-radius:8px;background:
+      radial-gradient(circle at 30% 30%, rgba(255,182,72,.10), transparent 40%),
+      radial-gradient(circle at 70% 60%, rgba(79,184,255,.08), transparent 40%),
+      repeating-linear-gradient(0deg, #131c23 0 1px, transparent 1px 38px),
+      repeating-linear-gradient(90deg, #131c23 0 1px, transparent 1px 38px),
+      var(--panel-2);
+    position:relative;overflow:hidden;border:1px solid var(--line)}
+  .pin{position:absolute;width:11px;height:11px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 4px rgba(255,255,255,.04)}
+  .pin::after{content:'';position:absolute;inset:0;border-radius:50%;animation:pulse 1.8s ease-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,93,.4)}100%{box-shadow:0 0 0 14px rgba(255,93,93,0)}}
+
+  .empty{padding:30px 16px;text-align:center;color:var(--muted);font-size:13px}
+  .hint{font-size:11px;color:var(--muted);padding:10px 16px}
+  .modal-bg{position:fixed;inset:0;background:rgba(5,8,10,.6);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;width:420px;max-width:92vw;padding:18px}
+  .modal h3{margin:0 0 12px;font-family:'Space Grotesk';font-size:15px}
+  .field{margin-bottom:10px;display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:11px;color:var(--muted)}
+  .field select,.field input{width:100%}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback } = React;
+const API = "http://localhost:4000/api";
+
+const SEVS = ["Low","Medium","High","Critical","Emergency"];
+
+function Badge({ sev }) {
+  return <span className={`badge sev-${sev}`}><span className="dot"></span>{sev}</span>;
+}
+
+function timeAgo(ts){
+  if(!ts) return "—";
+  const d = new Date(ts.replace(" ","T")+"Z");
+  const s = Math.max(1, Math.round((Date.now()-d.getTime())/1000));
+  if(s<60) return s+"s ago";
+  if(s<3600) return Math.round(s/60)+"m ago";
+  if(s<86400) return Math.round(s/3600)+"h ago";
+  return Math.round(s/86400)+"d ago";
+}
+
+function NavItem({label, active, onClick}){
+  return <div className={`navitem ${active?'active':''}`} onClick={onClick}><span className="dot"></span>{label}</div>;
+}
+
+function Kpis(){
+  const [k,setK]=useState(null);
+  const load=useCallback(()=>fetch(`${API}/dashboard/kpis`).then(r=>r.json()).then(setK),[]);
+  useEffect(()=>{load(); const t=setInterval(load,8000); return ()=>clearInterval(t);},[load]);
+  if(!k) return null;
+  return (
+    <div className="kpi-row">
+      <div className="kpi"><div className="label">Active Incidents</div><div className="value">{k.active_incidents}</div></div>
+      <div className="kpi warn"><div className="label">Critical / Emergency</div><div className="value">{k.critical_open}</div></div>
+      <div className="kpi"><div className="label">Last 24h</div><div className="value">{k.incidents_last_24h}</div></div>
+      <div className="kpi"><div className="label">Avg. Ack Time</div><div className="value">{k.avg_ack_seconds?Math.round(k.avg_ack_seconds)+'s':'—'}</div></div>
+    </div>
+  );
+}
+
+function IncidentDrawer({id,onClose,user,refresh}){
+  const [inc,setInc]=useState(null);
+  const load=useCallback(()=>fetch(`${API}/incidents/${id}`).then(r=>r.json()).then(setInc),[id]);
+  useEffect(load,[load]);
+  if(!inc) return null;
+  const act=(path,body={})=>fetch(`${API}/incidents/${id}/${path}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user_id:user.user_id,...body})}).then(()=>{load();refresh();});
+  return (
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{width:480}}>
+        <h3>Incident #{inc.incident_id} · {inc.incident_type}</h3>
+        <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+          <Badge sev={inc.severity}/><span className="pill">{inc.status}</span><span className="pill mono">{inc.confidence_pct}% confidence</span>
+        </div>
+        <div className="mono" style={{fontSize:12,color:'var(--muted)',marginBottom:10,lineHeight:1.8}}>
+          Detected {timeAgo(inc.detected_at)} · Location: {inc.location_status}<br/>
+          Acknowledged: {inc.acknowledged_at?timeAgo(inc.acknowledged_at):'pending'}<br/>
+          Dispatched to: {inc.dispatched_to||'—'}
+        </div>
+        <div className="btnrow">
+          {inc.status==='New/Open' && <button className="btn primary" onClick={()=>act('acknowledge')}>Acknowledge</button>}
+          <button className="btn" onClick={()=>act('escalate',{reason:'Manual escalation'})}>Escalate</button>
+          <button className="btn" onClick={()=>act('dispatch',{dispatched_to:'Nearest Response Center',services:['Fire','Medical','EMS']})}>Emergency dispatch</button>
+          {inc.status!=='Closed' && <button className="btn" onClick={()=>act('close',{closure_notes:'Resolved via console'})}>Close incident</button>}
+        </div>
+        <div style={{marginTop:14}}>
+          <div className="field"><label>Audit trail</label></div>
+          <div style={{maxHeight:140,overflow:'auto',border:'1px solid var(--line)',borderRadius:6}}>
+            {inc.audit.length? inc.audit.map(a=>(
+              <div key={a.audit_id} className="mono" style={{fontSize:11,padding:'6px 10px',borderBottom:'1px solid var(--line)',color:'var(--muted)'}}>
+                {a.performed_at} — {a.action} {a.performed_by?('by user#'+a.performed_by):''}
+              </div>
+            )) : <div className="empty" style={{padding:14}}>No audit events yet</div>}
+          </div>
+        </div>
+        <div className="modal-actions"><button className="btn" onClick={onClose}>Close panel</button></div>
+      </div>
+    </div>
+  );
+}
+
+function IncidentsScreen({user}){
+  const [list,setList]=useState([]);
+  const [filters,setFilters]=useState({type:'',status:'',severity:''});
+  const [openId,setOpenId]=useState(null);
+  const load=useCallback(()=>{
+    const qs=new URLSearchParams(Object.fromEntries(Object.entries(filters).filter(([,v])=>v))).toString();
+    fetch(`${API}/incidents?${qs}`).then(r=>r.json()).then(setList);
+  },[filters]);
+  useEffect(()=>{load(); const t=setInterval(load,6000); return ()=>clearInterval(t);},[load]);
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h2>Incidents</h2><span className="pill mono">{list.length} shown</span></div>
+      <div className="toolbar">
+        <select value={filters.type} onChange={e=>setFilters({...filters,type:e.target.value})}>
+          <option value="">All types</option>
+          {['smoke','intrusion','facial_match','suspect','loitering'].map(t=><option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={filters.severity} onChange={e=>setFilters({...filters,severity:e.target.value})}>
+          <option value="">All severities</option>
+          {SEVS.map(s=><option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={filters.status} onChange={e=>setFilters({...filters,status:e.target.value})}>
+          <option value="">All statuses</option>
+          {['New/Open','Acknowledged','Assigned','Dispatched','Escalated','Closed','Archived'].map(s=><option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+      <div className="panel-body">
+        {list.length===0 ? <div className="empty">No incidents match these filters.</div> :
+        <table>
+          <thead><tr><th>ID</th><th>Type</th><th>Severity</th><th>Status</th><th>Detected</th><th>Confidence</th><th></th></tr></thead>
+          <tbody>
+          {list.map(i=>(
+            <tr key={i.incident_id} className="row">
+              <td className="mono">#{i.incident_id}</td>
+              <td>{i.incident_type}</td>
+              <td><Badge sev={i.severity}/></td>
+              <td><span className="pill">{i.status}</span></td>
+              <td className="mono" style={{color:'var(--muted)'}}>{timeAgo(i.detected_at)}</td>
+              <td className="mono">{i.confidence_pct}%</td>
+              <td><button className="btn tiny" onClick={()=>setOpenId(i.incident_id)}>Open</button></td>
+            </tr>
+          ))}
+          </tbody>
+        </table>}
+      </div>
+      {openId && <IncidentDrawer id={openId} user={user} onClose={()=>setOpenId(null)} refresh={load}/>}
+    </div>
+  );
+}
+
+function AlertsScreen({user}){
+  const [alerts,setAlerts]=useState([]);
+  const load=()=>fetch(`${API}/alerts`).then(r=>r.json()).then(setAlerts);
+  useEffect(()=>{load(); const t=setInterval(load,6000); return ()=>clearInterval(t);},[]);
+  const ack=(id)=>fetch(`${API}/alerts/${id}/acknowledge`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user_id:user.user_id})}).then(load);
+  return (
+    <div className="panel">
+      <div className="panel-head"><h2>Active Alert Queue</h2><span className="pill mono">{alerts.filter(a=>a.status==='Active').length} active</span></div>
+      <div className="panel-body">
+        {alerts.length===0 ? <div className="empty">Queue is clear.</div> :
+        <table>
+          <thead><tr><th>ID</th><th>Type</th><th>Severity</th><th>Message</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          {alerts.map(a=>(
+            <tr key={a.alert_id} className="row">
+              <td className="mono">#{a.alert_id}</td>
+              <td>{a.alert_type}</td>
+              <td><Badge sev={a.severity}/></td>
+              <td style={{color:'var(--muted)'}}>{a.message}</td>
+              <td><span className="pill">{a.status}</span></td>
+              <td>{a.status==='Active' && <button className="btn tiny primary" onClick={()=>ack(a.alert_id)}>Acknowledge</button>}</td>
+            </tr>
+          ))}
+          </tbody>
+        </table>}
+      </div>
+    </div>
+  );
+}
+
+function GisScreen(){
+  const [pts,setPts]=useState([]);
+  const [hotspots,setHotspots]=useState([]);
+  useEffect(()=>{
+    fetch(`${API}/gis/incidents`).then(r=>r.json()).then(setPts);
+    fetch(`${API}/gis/hotspots`).then(r=>r.json()).then(setHotspots);
+  },[]);
+  const bounds = {minLat:32.774,maxLat:32.783,minLng:-96.803,maxLng:-96.793};
+  const toXY = (lat,lng) => ({
+    x: ((lng-bounds.minLng)/(bounds.maxLng-bounds.minLng))*100,
+    y: 100-((lat-bounds.minLat)/(bounds.maxLat-bounds.minLat))*100
+  });
+  const colorFor = s => ({Critical:'var(--crit)',Emergency:'var(--crit)',High:'var(--high)',Medium:'var(--med)',Low:'var(--low)'}[s]||'var(--low)');
+  return (
+    <div className="grid2">
+      <div className="panel">
+        <div className="panel-head"><h2>Incident Map</h2><span className="pill">Geofenced zones</span></div>
+        <div className="panel-body" style={{padding:14}}>
+          <div className="map">
+            {pts.filter(p=>p.location_lat).map(p=>{
+              const {x,y}=toXY(p.location_lat,p.location_lng);
+              return <div key={p.incident_id} className="pin" title={`#${p.incident_id} ${p.incident_type}`}
+                style={{left:x+'%',top:y+'%',background:colorFor(p.severity)}}/>;
+            })}
+          </div>
+          <div className="hint">Pulsing markers = plotted incidents (UC#38). Grid simulates the GIS overlay; production build renders on a live tile layer (Mapbox/Leaflet).</div>
+        </div>
+      </div>
+      <div className="panel">
+        <div className="panel-head"><h2>High-Risk Zones</h2></div>
+        <div className="panel-body">
+          {hotspots.map(h=>(
+            <div key={h.zone_id} style={{padding:'10px 16px',borderTop:'1px solid var(--line)',display:'flex',justifyContent:'space-between'}}>
+              <span>{h.zone_name}</span><span className="mono pill">{h.incident_count} incidents</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuditScreen(){
+  const [rows,setRows]=useState([]);
+  useEffect(()=>{fetch(`${API}/audit`).then(r=>r.json()).then(setRows);},[]);
+  return (
+    <div className="panel">
+      <div className="panel-head"><h2>Audit Trail</h2><span className="pill mono">Immutable log</span></div>
+      <div className="panel-body">
+        <table>
+          <thead><tr><th>Time</th><th>Entity</th><th>Action</th><th>By</th></tr></thead>
+          <tbody>
+          {rows.map(r=>(
+            <tr key={r.audit_id} className="row">
+              <td className="mono" style={{color:'var(--muted)'}}>{r.performed_at}</td>
+              <td>{r.entity_type} #{r.entity_id}</td>
+              <td><span className="pill">{r.action}</span></td>
+              <td className="mono">{r.performed_by?('user #'+r.performed_by):'system'}</td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen({onLogin}){
+  const [username,setUsername]=useState('operator1');
+  const [err,setErr]=useState('');
+  const submit=(e)=>{
+    e.preventDefault();
+    fetch(`${API}/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username})})
+      .then(r=>{ if(!r.ok) throw new Error('Unknown user'); return r.json();})
+      .then(onLogin).catch(()=>setErr('Unknown user — try operator1, supervisor1, officer1, admin'));
+  };
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <form onSubmit={submit} className="modal" style={{width:340}}>
+        <div className="brand" style={{padding:'0 0 16px'}}>
+          <div className="brand-mark"></div>
+          <div><div className="brand-text">Kenetix360</div><div className="brand-sub">Public Safety Intelligence</div></div>
+        </div>
+        <div className="field"><label>Username</label><input value={username} onChange={e=>setUsername(e.target.value)} /></div>
+        {err && <div style={{color:'var(--crit)',fontSize:12,marginBottom:8}}>{err}</div>}
+        <button className="btn primary" style={{width:'100%'}}>Sign in</button>
+        <div className="hint" style={{padding:'10px 0 0'}}>Demo accounts: admin, operator1, supervisor1, officer1, legal1, auditor1, exec1</div>
+      </form>
+    </div>
+  );
+}
+
+function App(){
+  const [user,setUser]=useState(null);
+  const [screen,setScreen]=useState('incidents');
+  if(!user) return <LoginScreen onLogin={setUser}/>;
+  const screens={
+    incidents:{label:'Incidents',el:<IncidentsScreen user={user}/>},
+    alerts:{label:'Alert Queue',el:<AlertsScreen user={user}/>},
+    gis:{label:'GIS Intelligence',el:<GisScreen/>},
+    audit:{label:'Audit & Compliance',el:<AuditScreen/>},
+  };
+  return (
+    <div className="shell">
+      <div className="nav">
+        <div className="brand">
+          <div className="brand-mark"></div>
+          <div><div className="brand-text">Kenetix360</div><div className="brand-sub">Command Console</div></div>
+        </div>
+        {Object.entries(screens).map(([k,v])=>
+          <NavItem key={k} label={v.label} active={screen===k} onClick={()=>setScreen(k)} />
+        )}
+      </div>
+      <div className="main">
+        <div className="topbar">
+          <div><h1>{screens[screen].label}</h1><div className="meta">EP01 · Public Safety Intelligence</div></div>
+          <div className="userbox"><b>{user.full_name}</b> · {user.role_name}</div>
+        </div>
+        <Kpis/>
+        {screens[screen].el}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
