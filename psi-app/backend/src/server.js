@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { db } from './db/init.js';
+import './db/seed.js';
 import incidentsRouter from './routes/incidents.js';
 import alertsRouter from './routes/alerts.js';
 import configRouter from './routes/config.js';
