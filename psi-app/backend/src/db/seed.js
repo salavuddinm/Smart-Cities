@@ -1,3 +1,4 @@
+console.log("🌱 Seeding demo users...");
 import { db } from './init.js';
 
 const roles = ['Administrator', 'Security Operator', 'Supervisor', 'Officer', 'Police/Legal', 'Auditor', 'Executive'];
